@@ -1,7 +1,7 @@
 # DeepakGym S3 Static Website
 
 ## Description
-This project involves setting up an Amazon EC2 instance and configuring an S3 bucket to host a static website using a free CSS template. The S3 bucket is configured for public access and static website hosting.
+This project involves setting up an Amazon EC2 instance and configuring an S3 bucket to host a static website using a CSS template. The S3 bucket is configured for public access and static website hosting.
 
 ## Prerequisites
 - AWS CLI installed and configured
