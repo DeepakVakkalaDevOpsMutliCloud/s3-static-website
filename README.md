@@ -1,135 +1,149 @@
-# s3-static-website
-deepak-gym-website
+# DeepakGym S3 Static Website
 
-## Setup Instructions
+## Description
+This project involves setting up an Amazon EC2 instance and configuring an S3 bucket to host a static website using a free CSS template. The S3 bucket is configured for public access and static website hosting.
 
-### Step 1: Create an IAM Role for EC2 with S3 Full Access
+## Prerequisites
+- AWS CLI installed and configured
+- An AWS account
+- SSH access to EC2 instances
 
-#### Create a Trust Policy
-Create a trust policy file named `trust-policy.json` that allows EC2 to assume this role. Save the following JSON content to that file:
+## Installation Steps
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "ec2.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
+### Step 1: Create an IAM Role
+1. Create a trust policy file named `trust-policy.json`:
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "ec2.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    ```
 
+2. Create the IAM role:
+    ```bash
+    aws iam create-role --role-name EC2S3FullAccessRole --assume-role-policy-document file://trust-policy.json
+    ```
 
-Create the IAM Role
-Run this command to create the IAM role:
+3. Create an S3 full access policy file named `s3-full-access-policy.json`:
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:*",
+                    "s3-object-lambda:*"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+    ```
 
-aws iam create-role --role-name EC2S3FullAccessRole --assume-role-policy-document file://trust-policy.json
+4. Attach the policy to the role:
+    ```bash
+    aws iam put-role-policy --role-name EC2S3FullAccessRole --policy-name S3FullAccessPolicy --policy-document file://s3-full-access-policy.json
+    ```
 
-Create the S3 Full Access Policy
-Create a policy file named s3-full-access-policy.json with the following content:
+### Step 2: Create an Instance Profile
+1. Create an instance profile:
+    ```bash
+    aws iam create-instance-profile --instance-profile-name EC2S3FullAccessProfile
+    ```
 
-json
+2. Add the role to the instance profile:
+    ```bash
+    aws iam add-role-to-instance-profile --instance-profile-name EC2S3FullAccessProfile --role-name EC2S3FullAccessRole
+    ```
 
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:*",
-                "s3-object-lambda:*"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
+### Step 3: Launch an EC2 Instance with the IAM Role Attached
+1. Launch the EC2 instance:
+    ```bash
+    aws ec2 run-instances --image-id ami-07c5ecd8498c59db5 --instance-type t2.micro --key-name s3keypair --iam-instance-profile Name=EC2S3FullAccessProfile
+    ```
 
-Attach the Policy to the Role
-You can attach the policy you just created with the following command:
+2. Connect to the instance using SSH:
+    ```bash
+    ssh -i s3keypair.pem ec2-user@your-ec2-instance-public-ip
+    ```
 
+### Step 4: Create an S3 Bucket
+1. Create an S3 bucket:
+    ```bash
+    aws s3 mb s3://deepakgym.com
+    ```
 
-aws iam put-role-policy --role-name EC2S3FullAccessRole --policy-name S3FullAccessPolicy --policy-document file://s3-full-access-policy.json
+### Step 5: Install Unzip and Download the Web Template
+1. Install unzip:
+    ```bash
+    sudo yum install -y unzip
+    ```
 
+2. Download the template:
+    ```bash
+    curl -O https://www.free-css.com/assets/files/free-css-templates/download/page296/neogym.zip
+    ```
 
-Step 2: Create an Instance Profile and Attach the Role
-Create an Instance Profile
-Create an instance profile for the EC2 instance:
+3. Unzip the template:
+    ```bash
+    unzip neogym.zip -d neogym-html
+    ```
 
-aws iam create-instance-profile --instance-profile-name EC2S3FullAccessProfile
-Add the Role to the Instance Profile
-Add the role to the instance profile:
+### Step 6: Copy Files to S3 Bucket
+1. Copy files from the local directory to the S3 bucket:
+    ```bash
+    aws s3 cp neogym-html/ s3://deepakgym.com/ --recursive
+    ```
 
+### Step 7: Remove Public Access Block on the Bucket
+1. Remove public access block:
+    ```bash
+    aws s3api delete-public-access-block --bucket deepakgym.com
+    ```
 
-aws iam add-role-to-instance-profile --instance-profile-name EC2S3FullAccessProfile --role-name EC2S3FullAccessRole
-Step 3: Launch an EC2 Instance with the IAM Role Attached
-When creating the EC2 instance, specify the instance profile so that it has access to S3. Here’s the command to launch the instance:
+### Step 8: Enable Static Website Hosting on S3
+1. Enable static website hosting:
+    ```bash
+    aws s3 website s3://deepakgym.com --index-document index.html --error-document error.html
+    ```
 
-aws ec2 run-instances --image-id ami-07c5ecd8498c59db5 --instance-type t2.micro --key-name s3keypair --ia
+### Step 9: Create a Bucket Policy for Public Access
+1. Create a bucket policy JSON file:
+    ```bash
+    cat > policy.json << EOL
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::deepakgym.com/*"
+            }
+        ]
+    }
+    EOL
+    ```
 
-Step 1: Create an EC2 Instance
-Run this command to create an EC2 instance with Amazon Linux:
+2. Apply the bucket policy:
+    ```bash
+    aws s3api put-bucket-policy --bucket deepakgym.com --policy file://policy.json
+    ```
 
+## Conclusion
+Your static website should now be accessible through the S3 bucket. Ensure that the bucket policy and the public access settings are correctly configured to allow public access.
 
-aws ec2 run-instances --image-id ami-07c5ecd8498c59db5 --instance-type t2.micro --key-name s3keypair --iam-instance-profile Name=EC2S3FullAccessProfile
-Once created, connect to the instance using SSH:
+## Contact
+For questions, please reach out to [Your Name](your-email@example.com).
 
-
-ssh -i s3keypair.pem ec2-user@your-ec2-instance-public-ip
-Step 2: Create an S3 Bucket
-Create an S3 bucket named deepakgym.com:
-
-
-aws s3 mb s3://deepakgym.com
-Step 3: Install Unzip and Download the Web Template
-Install unzip:
-
-
-sudo yum install -y unzip
-Download the template from the web:
-
-
-curl -O https://www.free-css.com/assets/files/free-css-templates/download/page296/neogym.zip
-Unzip the template:
-
-
-unzip neogym.zip -d neogym-html
-Step 4: Copy Files to S3 Bucket
-Copy all files from the neogym-html directory to the S3 bucket:
-
-aws s3 cp neogym-html/ s3://deepakgym.com/ --recursive
-Step 5: Remove Public Access Block on the Bucket
-Remove the S3 bucket’s public access block:
-
-aws s3api delete-public-access-block --bucket deepakgym.com
-Step 6: Enable Static Website Hosting on S3
-Enable static website hosting for the S3 bucket:
-
-
-aws s3 website s3://deepakgym.com --index-document index.html --error-document error.html
-Step 7: Create a Bucket Policy for Public Access
-Create a bucket policy JSON file:
-
-
-cat > policy.json << EOL
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::deepakgym.com/*"
-        }
-    ]
-}
-
-Apply the bucket policy:
-
-
-aws s3api put-bucket-policy --bucket deepakgym.com --policy file://policy.json
-
-
-
+## License
+This project is licensed under the MIT License.
