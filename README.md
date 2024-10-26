@@ -139,11 +139,12 @@ This project involves setting up an Amazon EC2 instance and configuring an S3 bu
     aws s3api put-bucket-policy --bucket deepakgym.com --policy file://policy.json
     ```
 
+For accessing the Application from web 
+    
+    ```bash
+    http://deepakgym.com.s3.<region>.amazonaws.com/<object-key>
+    ```
+    
 ## Conclusion
-Your static website should now be accessible through the S3 bucket. Ensure that the bucket policy and the public access settings are correctly configured to allow public access.
+Now the static website should now be accessible through the S3 bucket. Ensure that the bucket policy and the public access settings are correctly configured to allow public access.
 
-## Contact
-For questions, please reach out to [Your Name](your-email@example.com).
-
-## License
-This project is licensed under the MIT License.
