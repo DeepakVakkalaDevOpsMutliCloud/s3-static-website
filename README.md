@@ -73,7 +73,7 @@ Step 1: Create an EC2 Instance
 Run this command to create an EC2 instance with Amazon Linux:
 
 
-aws ec2 run-instances --image-id ami-07c5ecd8498c59db5 --instance-type t2.micro --key-name s3keypair
+aws ec2 run-instances --image-id ami-07c5ecd8498c59db5 --instance-type t2.micro --key-name s3keypair --iam-instance-profile Name=EC2S3FullAccessProfile
 Once created, connect to the instance using SSH:
 
 
